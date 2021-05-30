@@ -20,4 +20,12 @@ public class Server {
         this.jobsWaiting = jw;
         this.jobsRunning = jr;
     }
+    
+    protected int getCore() {
+    	return this.core;
+    }
+
+    protected int getJobsWaiting() {
+    	return this.jobsWaiting;
+    }
 }

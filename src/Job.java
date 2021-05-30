@@ -16,4 +16,8 @@ public class Job {
         memory = Integer.parseInt(fieldBuffer[5]);
         disk = Integer.parseInt(fieldBuffer[6].trim()); // remove whitespace
     }
+    
+    protected Integer getCore() {
+    	return this.core;
+    }
 }

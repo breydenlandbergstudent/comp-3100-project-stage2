@@ -162,18 +162,18 @@ public class Client {
     //
     // as opposed to simply the first Active/Booting server that has the lowest fitness value
     public static Server getOptimalServer(ArrayList<Server> servers, Job job) {
-        Server optimalServer = servers.get(0);                      // initalise optimal server to be the first element of servers
-        int lowestFitnessValue = servers.get(0).core - job.core;    // initialise the lowest fitness value to the fitness value of the first server
+        Server optimalServer = servers.get(0);                                  // initialise optimal server to be the first element of servers
+        int lowestFitnessValue = servers.get(0).getCore() - job.getCore();      // initialise the lowest fitness value to the fitness value of the first server
 
-        for(Server s : servers) {                                   // iterate through every server
-            int fitnessValue = s.core - job.core;                   // find current fitnessValue
+        for(Server s : servers) {                                               // iterate through every server
+            int fitnessValue = s.getCore() - job.getCore();                     // find current fitnessValue
 
             // the optimal server will be the one with
             // the lowest possible fitness value
             // AND lowest possible waiting jobs
              if(lowestFitnessValue < 0 ||
                      (fitnessValue < lowestFitnessValue &&
-                    (s.jobsWaiting < optimalServer.jobsWaiting))) {
+               (s.getJobsWaiting() < optimalServer.getJobsWaiting()))) {
                         lowestFitnessValue = fitnessValue;
                         optimalServer = s;
             }
