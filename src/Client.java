@@ -37,151 +37,153 @@ public class Client {
     private static String scheduleString; // string to be scheduled
 
     // create server/list objects
-    private static List<Server> serverList;
+    private static ArrayList<Server> serverList;
 
 
     public static void main(String[] args) throws IOException {
         setup();
 
         try {
-            System.out.println("\nStep 1. Sending HELO...");
-            writeBytes(HELO); // client sends HELO
-            System.out.println("Step 2. Received OK");
+            writeBytes(HELO); // Step 1. Sending HELO...
 
-            System.out.println("\nStep 3. Sending AUTH " + System.getProperty("user.name") + "...");
-            writeBytes(AUTH + " " + System.getProperty("user.name") + "\n"); // client sends AUTH [username]
-            System.out.println("Step 4. Received OK");
+            readStringBuffer(); // Step 2. Received OK
 
-            System.out.println("\nStep 5. Sending REDY...");
-            writeBytes(REDY);
+            writeBytes(AUTH + " " + System.getProperty("user.name") + "\n"); // Step 3. Sending AUTH breyden...
+
+            readStringBuffer(); // Step 4. Received OK
+
+            writeBytes(REDY); // Step 5. Sending REDY...
 
             while(!(stringBuffer = bfr.readLine()).contains(NONE)) {
-                System.out.println("\n*------------------------------*");
-                System.out.println("*------------------------------*");
-                System.out.println("*------------------------------*");
 
-                System.out.println("\nStep 6. Received " + stringBuffer);
+                // Step 6. Received JOBN;
 
                 if(stringBuffer.contains(JOBN)) {
                     fieldBuffer = stringBuffer.split(" "); // split String into array of strings (each string being a field of JOBN)
 
                     Job job = new Job(fieldBuffer); // create new Job object with data from fieldBuffer
 
-                    System.out.println("\nStep 7. Sending " + GETS_Capable + job.core + " " + job.memory + " " + job.disk + "...");
-                    writeBytes(GETS_Capable + " " + job.core + " " + job.memory + " " + job.disk + "\n");
+                    writeBytes(GETS_Capable + " " + job.core + " " + job.memory + " " + job.disk + "\n"); // Step 7. Sending GETS Capable...
 
-                    System.out.println("\nsending OK...");
-                    writeBytes(OK); // send OK for server to send the DATA command
-    
-                    readStringBuffer(); // read DATA command
-                    System.out.println("\nStep 8. DATA command received as: " + stringBuffer);
+                    writeBytes(OK); // sending OK...
+
+                    readStringBuffer(); // Step 8. Receive DATA command
 
                     fieldBuffer = stringBuffer.split(" "); // split the DATA command into an array of strings
-                    int numServersAvailable = Integer.parseInt(fieldBuffer[1]);
-                    System.out.println("Therefore the number of available servers is: " + numServersAvailable);
+                    int numServersAvailable = Integer.parseInt(fieldBuffer[1]); // number of available servers
 
-                    System.out.println("\nStep 9. Sending OK...");
-                    writeBytes(OK); // send OK for server to
+                    writeBytes(OK); // Step 9. Sending OK...
 
-                    // parseServerInformation();
-                    System.out.println("\nStep 10. Received and parsing server information...");
-                    for(int i = 0; i < numServersAvailable; i++) {
-                    	readStringBuffer();
-                    	System.out.println(stringBuffer);
+                    parseServerInformation(numServersAvailable); // Step 10. Received and parsing server information...
 
-                    	fieldBuffer = stringBuffer.split(" ");
+                    writeBytes(OK); // Step 11. Sending OK after reading server information... going back to Step 10.
 
-                    	String serverName = fieldBuffer[0];
-                    	int id = Integer.parseInt(fieldBuffer[1]);
-                    	String state = fieldBuffer[2];
-                    	int startTime = Integer.parseInt(fieldBuffer[3]);
-                    	int core = Integer.parseInt(fieldBuffer[4]);
-                    	int memory = Integer.parseInt(fieldBuffer[5]);
-                    	int disk = Integer.parseInt(fieldBuffer[6]);
-                    	int jobsWaiting = Integer.parseInt(fieldBuffer[7]);
-                    	int jobsRunning = Integer.parseInt(fieldBuffer[8].trim()); // remove whitespace
+                    readStringBuffer(); // Step 10. Received '.' ... going back to Step 7."
 
-                    	Server currentServer = new Server(serverName, id, state, startTime, core, memory, disk, jobsWaiting, jobsRunning);
-                    	serverList.add(currentServer);
-                    }
-                    
-                    System.out.println("\nStep 11. Sending OK after reading server information... going back to Step 10.");
-                    writeBytes(OK); // send OK
+                    Server optimalServer = getOptimalServer(serverList, job); // use the custom designed algorithm to find the optimal server
 
-                    readStringBuffer(); // 
-                    System.out.println("\nStep 10. Received " + stringBuffer + " ... going back to Step 7.");
-                    
-                    Server mostEfficientServer = getOptimalServer(serverList, job.core, job.memory, job.disk);
-
-                    scheduleString = SCHD + " " + job.id + " " + mostEfficientServer.serverName + " " + mostEfficientServer.id + "\n";
-                    System.out.println("\nStep 7. Scheduling the job...");
+                    // Step 7. Scheduling the job...
+                    scheduleString = SCHD + " " + job.id + " " + optimalServer.serverName + " " + optimalServer.id + "\n";
                     writeBytes(scheduleString);
 
-                    readStringBuffer(); // '.'
-                    System.out.println("\nStep 8. Received " + stringBuffer);
+                    readStringBuffer(); // Step 8. Received '.'
                     
                     serverList.clear(); // clear server list for next job to be scheduled
 
-                    readStringBuffer(); // whitespace
-
-                    System.out.println("\nStep 9. Go back to Step 5.... restart while loop");
-                    writeBytes(REDY); // send REDY
+                    writeBytes(REDY); // Step 9. Go back to Step 5.... restart while loop... send REDY
                 } 
                 else if (stringBuffer.contains(JCPL)) {
-                    System.out.println("\nSending REDY...");
                     writeBytes(REDY); // send REDY for the next job
                 }
             }
-
-            System.out.println("TERMINATING CONNECTION ...");
-            
-            writeBytes(QUIT);
-
-            System.out.println("CONNECTION TERMINATED.");
-
-            close();
+            writeBytes(QUIT); // Step 12.
+            // Step 13. Received QUIT
+            close(); // Step 14.
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
+
+    // set up
     public static void setup() throws IOException {
         serverList = new ArrayList<>(); // initialise list of servers
 
-        s = new Socket(hostname, serverPort); // socket with host IP of 127.0.0.1 (localhost), server port of 50000
+        s = new Socket(hostname, serverPort); // socket withjobCore host IP of 127.0.0.1 (localhost), server port of 50000
 
         din = new InputStreamReader(s.getInputStream());
         dout = new DataOutputStream(s.getOutputStream());
         bfr = new BufferedReader(din);
     }
 
+
+    // method to send command bytes to server
     public static void writeBytes(String command) throws IOException {
         byteBuffer = (command + "\n").getBytes();
         dout.write(byteBuffer);
         dout.flush();
     }
 
+
+    // method to read command bytes from server
     public static void readStringBuffer() throws IOException {
         stringBuffer = bfr.readLine();
     }
-    
-    public static void parseServerInformation() {
-    	
+
+
+    // parse server information into serverList List data structure
+    public static void parseServerInformation(int numServersAvailable) throws IOException {
+    	for(int i = 0; i < numServersAvailable; i++) {
+            readStringBuffer();
+
+            fieldBuffer = stringBuffer.split(" ");
+
+            String serverName = fieldBuffer[0];
+            int id = Integer.parseInt(fieldBuffer[1]);
+            String state = fieldBuffer[2];
+            int startTime = Integer.parseInt(fieldBuffer[3]);
+            int core = Integer.parseInt(fieldBuffer[4]);
+            int memory = Integer.parseInt(fieldBuffer[5]);
+            int disk = Integer.parseInt(fieldBuffer[6]);
+            int jobsWaiting = Integer.parseInt(fieldBuffer[7]);
+            int jobsRunning = Integer.parseInt(fieldBuffer[8].trim()); // remove whitespace
+
+            Server currentServer = new Server(serverName, id, state, startTime, core, memory, disk, jobsWaiting, jobsRunning);
+            serverList.add(currentServer);
+        }
     }
-    
-    // the actual algorithm for choosing the optimal server for the job
-    // currently just a first fit implementation
-    public static Server getOptimalServer(List<Server> serverList, Integer jobCore, Integer jobMemory, Integer jobDisk) {
-    	Server optimalServer = serverList.get(0);
-        for(Server server : serverList) {
-            if(server.state.equals("active") || server.state.equals("idle")) {
-                optimalServer = server;
-                break;
+
+
+    // the algorithm for choosing the optimal server for the job
+    // it is a modified BF algorithm
+    //
+    // BF - choose the server with least fitness value
+    // modified to also choose the server with the fewest waiting jobs
+    //
+    // as opposed to simply the first Active/Booting server that has the lowest fitness value
+    public static Server getOptimalServer(ArrayList<Server> servers, Job job) {
+        Server optimalServer = servers.get(0);                      // initalise optimal server to be the first element of servers
+        int lowestFitnessValue = servers.get(0).core - job.core;    // initialise the lowest fitness value to the fitness value of the first server
+
+        for(Server s : servers) {                                   // iterate through every server
+            int fitnessValue = s.core - job.core;                   // find current fitnessValue
+
+            // the optimal server will be the one with
+            // the lowest possible fitness value
+            // AND lowest possible waiting jobs
+             if(lowestFitnessValue < 0 ||
+                     (fitnessValue < lowestFitnessValue &&
+                    (s.jobsWaiting < optimalServer.jobsWaiting))) {
+                        lowestFitnessValue = fitnessValue;
+                        optimalServer = s;
             }
         }
+
         return optimalServer;
     }
-    
+
+
+    // close
     public static void close() throws IOException {
         din.close();
         dout.close();
